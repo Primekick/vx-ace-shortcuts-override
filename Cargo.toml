@@ -1,0 +1,19 @@
+[package]
+name = "at-vxa-shortcuts-override"
+version = "0.1.0"
+edition = "2021"
+authors = ["Axer/TheDarkAxer/Primekick <thetrueaxer@gmail.com>"]
+
+[lib]
+crate-type = ["cdylib"]
+name = "at_vxa_so"
+path = "src/lib.rs"
+
+[[bin]]
+name = "vxa_shortcuts_override"
+path = "src/main.rs"
+
+[dependencies]
+dll-syringe = "0.15.2"
+winapi-easy = "0.1.0"
+winapi = { version = "0.3.9", features = ["winuser"] }

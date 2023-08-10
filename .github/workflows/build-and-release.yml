@@ -1,0 +1,43 @@
+name: Rust
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set zip name
+      id: vars
+      run: echo "zipname=at_vxa_shortcuts_override_${{ github.ref_name }}.zip" | Out-File -FilePath $Env:GITHUB_OUTPUT -Encoding utf8 -Append
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+        target: i686-pc-windows-msvc
+    - uses: actions-rs/cargo@v1
+      with:
+        use-cross: false
+        command: build
+        args: --release --verbose --target i686-pc-windows-msvc --target-dir ./target
+    - uses: vimtor/action-zip@v1
+      with:
+        files: ./target/i686-pc-windows-msvc/release/at_vxa_so.dll ./target/i686-pc-windows-msvc/release/vxa_shortcuts_override.exe LICENSE.txt
+        dest: ${{ steps.vars.outputs.zipname }}
+    - name: Extract release notes
+      id: extract-release-notes
+      uses: ffurrer2/extract-release-notes@v1
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        body: ${{ steps.extract-release-notes.outputs.release_notes }}
+        files: ${{ steps.vars.outputs.zipname }}
