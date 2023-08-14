@@ -17,3 +17,7 @@ path = "src/main.rs"
 dll-syringe = "0.15.2"
 winapi-easy = "0.1.0"
 winapi = { version = "0.3.9", features = ["winuser"] }
+ratatui = { version = "0.22.0", features = ["all-widgets", "crossterm"] }
+crossterm = "0.27.0"
+winreg = "0.50.0"
+anyhow = "1.0.72"
