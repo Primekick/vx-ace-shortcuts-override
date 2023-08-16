@@ -83,7 +83,6 @@ extern "system" fn DllMain(
 {
     if call_reason == DLL_PROCESS_ATTACH {
         std::thread::spawn(move || key_hook());
-        msg_box("VX Ace Shortcuts Override", "Skroty klawiszowe nadpisane!");
     }
 
     true
