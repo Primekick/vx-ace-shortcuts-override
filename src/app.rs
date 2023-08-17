@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 
 use std::{iter, mem, ptr, thread, time, path, fs};
 use std::cell::RefCell;
+use std::sync::OnceLock;
 use std::ops::Deref;
 use std::os::windows::ffi::OsStrExt;
 use std::path::PathBuf;
@@ -20,22 +21,33 @@ use nwg::NativeUi;
 
 const CONFIG_FILE: &str = "pref.toml";
 
-fn get_dll_dir() -> PathBuf {
-    let Some(proj_dirs) = ProjectDirs::from("pl", "axer-tech", "vx-ace-shortcuts-override") else {
-        panic!()
-    };
-
-    proj_dirs.data_dir().to_path_buf()
-}
-
-fn get_dll_name() -> String {
-    format!("at_vxa_so_{}.dll", env!("CARGO_PKG_VERSION"))
-}
-
 #[cfg(not(debug_assertions))]
 const DLL_DATA: &[u8] = include_bytes!("../target/i686-pc-windows-msvc/release/at_vxa_so.dll");
 #[cfg(debug_assertions)]
 const DLL_DATA: &[u8] = include_bytes!("../target/i686-pc-windows-msvc/debug/at_vxa_so.dll");
+
+static CFG_PATH: OnceLock<PathBuf> = OnceLock::new();
+static DLL_PATH: OnceLock<PathBuf> = OnceLock::new();
+
+fn cfg_path() -> &'static PathBuf {
+    CFG_PATH.get_or_init(|| {
+        let Some(proj_dirs) = ProjectDirs::from("pl", "axer-tech", "vx-ace-shortcuts-override") else {
+            panic!()
+        };
+
+        proj_dirs.config_dir().join(CONFIG_FILE)
+    })
+}
+
+fn dll_path() -> &'static PathBuf {
+    DLL_PATH.get_or_init(|| {
+        let Some(proj_dirs) = ProjectDirs::from("pl", "axer-tech", "vx-ace-shortcuts-override") else {
+            panic!()
+        };
+
+        proj_dirs.data_dir().join(format!("at_vxa_so_{}.dll", env!("CARGO_PKG_VERSION")))
+    })
+}
 
 #[derive(Serialize, Deserialize)]
 struct AppConfig {
@@ -71,7 +83,7 @@ impl Default for AppConfig {
 fn inject() -> Result<()> {
     if let Some(target_proc) = OwnedProcess::find_first_by_name("RPGVXAce") {
         let syringe = Syringe::for_process(target_proc);
-        syringe.inject(get_dll_dir().join(get_dll_name()))?;
+        syringe.inject(dll_path())?;
         Ok(())
     } else {
         Err(anyhow!("Not yet"))
@@ -130,16 +142,17 @@ pub struct App {
     #[nwg_resource]
     embed: nwg::EmbedResource,
 
-    #[nwg_resource(source_embed: Some(&data.embed), source_embed_str: Some("SPLASH"))]
+    #[nwg_resource(source_embed: Some(& data.embed), source_embed_str: Some("SPLASH"))]
     splash: nwg::Bitmap,
 
     #[nwg_control(size: (320, 240), bitmap: Some(& data.splash))]
     image_frame: nwg::ImageFrame,
 
     // actual app
-    #[nwg_control(size: (480, 240), center: true, title: "axer.tech | VX Ace Shortcuts Override",
+    #[nwg_control(size: (480, 240), center: true, accept_files: true, title: "axer.tech | VX Ace\
+     Shortcuts Override",
     flags: "MAIN_WINDOW")]
-    #[nwg_events(OnWindowClose: [App::exit])]
+    #[nwg_events(OnWindowClose: [App::exit], OnFileDrop: [App::get_drop_path(SELF, EVT_DATA)])]
     window: nwg::Window,
 
     #[nwg_layout(parent: window, spacing: 1)]
@@ -154,52 +167,67 @@ pub struct App {
     #[nwg_events(OnButtonClick: [App::run_patched])]
     launch_button: nwg::Button,
 
-    #[nwg_control(visible: false, icon: Some(&nwg::Icon::from_system(nwg::OemIcon::Information)))]
+    #[nwg_control(realtime: true, visible: true, icon: Some(& nwg::Icon::from_system
+    (nwg::OemIcon::Information)))]
     tray: nwg::TrayNotification,
 }
 
 impl App {
+    fn update_dir_label(&self) {
+        if let Some(dir) = self.config.borrow().editor_path.clone() {
+            self.show_dir.set_text(dir.as_os_str().to_str().unwrap());
+        }
+    }
+
+    fn get_drop_path(&self, data: &nwg::EventData) {
+        if let Some(path_str) = data.on_file_drop().files().first() {
+            let path = PathBuf::from(path_str);
+            if path.extension().unwrap_or_default() == "exe" {
+                self.set_editor_path(path);
+            }
+        }
+    }
+
+    fn set_editor_path(&self, path: PathBuf) {
+        self.config.borrow_mut().editor_path.replace(path);
+        self.update_dir_label();
+        self.save_config();
+    }
+
+    fn load_config(&self) {
+        let cfg_content = fs::read_to_string(cfg_path())
+            .expect("Failed to read config");
+        *self.config.borrow_mut() = toml::from_str(&cfg_content)
+            .expect("Failed to parse config");
+    }
+
+    fn save_config(&self) {
+        let serialized = toml::to_string_pretty(self.config.borrow().deref())
+            .expect("Failed to serialize config");
+        fs::write(cfg_path(), serialized)
+            .expect("Failed to save config");
+    }
+
     fn setup_config(&self) {
-        let Some(proj_dirs) = ProjectDirs::from("pl", "axer-tech", "vx-ace-shortcuts-override") else {
-            panic!()
-        };
-
-        let cfg_path = proj_dirs.config_dir().join(CONFIG_FILE);
-
-        if !cfg_path.exists() {
-            fs::create_dir_all(proj_dirs.config_dir())
+        if !cfg_path().exists() {
+            fs::create_dir_all(cfg_path().parent().unwrap())
                 .expect("Failed to create app config directory");
-            let serialized = toml::to_string_pretty(self.config.borrow().deref())
-                .expect("Failed to serialize config");
-            fs::write(cfg_path, serialized)
-                .expect("Failed to save config");
+            self.save_config();
         } else {
-            let cfg_content = fs::read_to_string(cfg_path)
-                .expect("Failed to read config");
-            *self.config.borrow_mut() = toml::from_str(&cfg_content)
-                .expect("Failed to parse config");
+            self.load_config();
         }
     }
 
     fn setup_data(&self) {
-        let dll_dir = get_dll_dir();
-
+        let dll_dir = dll_path().parent().unwrap();
         if !dll_dir.exists() {
             fs::create_dir_all(&dll_dir)
                 .expect("Failed to create app data directory");
         }
-
-        let dll_path = dll_dir.join(get_dll_name());
-
-        if !dll_path.exists() {
-            fs::write(dll_path, DLL_DATA)
+        if !dll_path().exists() {
+            fs::write(dll_path(), DLL_DATA)
                 .expect("Failed to extract dll");
         }
-    }
-
-    fn update_dir_label(&self) {
-        let dir = self.config.borrow().editor_path.clone().unwrap();
-        self.show_dir.set_text(dir.as_os_str().to_str().unwrap());
     }
 
     fn init(&self) {
@@ -214,13 +242,13 @@ impl App {
     fn run_patched(&self) {
         if let Some(path) = &self.config.borrow().editor_path {
             run(path).unwrap();
-            self.show_tray_notif("VX Ace Shortcuts Override", "Skróty klawiszowe nadpisane!");
+            self.notify("VX Ace Shortcuts Override", "Skróty klawiszowe nadpisane!", nwg::OemIcon::Information);
             self.exit();
         }
     }
 
-    fn show_tray_notif(&self, title: &str, body: &str) {
-        let tray_ico = nwg::Icon::from_system(nwg::OemIcon::Information);
+    fn notify(&self, title: &str, body: &str, icon: nwg::OemIcon) {
+        let tray_ico = nwg::Icon::from_system(icon);
         let flags = nwg::TrayNotificationFlags::USER_ICON | nwg::TrayNotificationFlags::LARGE_ICON;
         self.tray.show(body, Some(title), Some(flags), Some(&tray_ico));
     }
