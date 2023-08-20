@@ -10,4 +10,5 @@ fn main() {
     embed_manifest(manifest).expect("unable to embed manifest file");
     embed_resource::compile("res/splash.rc", embed_resource::NONE);
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=\"src/lib.rs\"");
 }
