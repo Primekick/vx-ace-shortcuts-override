@@ -2,6 +2,7 @@
 
 use std::ffi::CString;
 use std::{mem, ptr};
+use std::ops::BitAnd;
 use winapi::shared::minwindef::HINSTANCE;
 use winapi::um::winuser::*;
 use winapi::um::winnt::DLL_PROCESS_ATTACH;
@@ -42,7 +43,7 @@ fn send_a_with_ogonek(uppercase: bool) {
 }
 
 #[no_mangle]
-fn key_hook() -> u32 {
+fn key_hook() {
     let hotkeys = GlobalHotkeySet::new()
         .add_global_hotkey(Action::BigOgonek, Modifier::Shift + Modifier::Ctrl + Modifier::Alt + Key::A)
         .add_global_hotkey(Action::SmallOgonek, Modifier::Ctrl + Modifier::Alt + Key::A);
@@ -50,15 +51,18 @@ fn key_hook() -> u32 {
     for action in hotkeys.listen_for_hotkeys().unwrap() {
         match action.unwrap() {
             Action::SmallOgonek => {
-                send_a_with_ogonek(false);
+                let is_caps_on = unsafe { GetKeyState(VK_CAPITAL).bitand(0x0001) };
+                if is_caps_on > 0 {
+                    send_a_with_ogonek(true);
+                } else {
+                    send_a_with_ogonek(false);
+                }
             }
             Action::BigOgonek => {
                 send_a_with_ogonek(true);
             }
         }
     }
-
-    0
 }
 
 #[no_mangle]
