@@ -1,7 +1,5 @@
 #![windows_subsystem = "windows"]
 #![allow(special_module_name)]
-
-mod lib;
 mod app;
 
 use nwg::NativeUi;

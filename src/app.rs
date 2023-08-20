@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 
-use std::{iter, mem, ptr, thread, time, path, fs};
+use std::{iter, mem, ptr, thread, time, path, fs, env};
 use std::cell::RefCell;
 use std::sync::OnceLock;
 use std::ops::Deref;
@@ -17,14 +17,14 @@ use serde::{Serialize, Deserialize};
 
 use native_windows_derive as nwd;
 use nwd::NwgUi;
-use nwg::NativeUi;
+use nwg::{CheckBoxState};
 
 const CONFIG_FILE: &str = "pref.toml";
 
 #[cfg(not(debug_assertions))]
-const DLL_DATA: &[u8] = include_bytes!("../target/i686-pc-windows-msvc/release/at_vxa_so.dll");
+const DLL_DATA: &[u8] = include_bytes!("../target/i686-pc-windows-msvc/release/deps/at_vxa_so.dll");
 #[cfg(debug_assertions)]
-const DLL_DATA: &[u8] = include_bytes!("../target/i686-pc-windows-msvc/debug/at_vxa_so.dll");
+const DLL_DATA: &[u8] = include_bytes!("../target/i686-pc-windows-msvc/debug/deps/at_vxa_so.dll");
 
 static CFG_PATH: OnceLock<PathBuf> = OnceLock::new();
 static DLL_PATH: OnceLock<PathBuf> = OnceLock::new();
@@ -149,8 +149,7 @@ pub struct App {
     image_frame: nwg::ImageFrame,
 
     // actual app
-    #[nwg_control(size: (480, 240), center: true, accept_files: true, title: "axer.tech | VX Ace\
-     Shortcuts Override",
+    #[nwg_control(size: (480, 240), center: true, accept_files: true, title: "axer.tech | VX Ace Shortcuts Override",
     flags: "MAIN_WINDOW")]
     #[nwg_events(OnWindowClose: [App::exit], OnFileDrop: [App::get_drop_path(SELF, EVT_DATA)])]
     window: nwg::Window,
@@ -158,31 +157,79 @@ pub struct App {
     #[nwg_layout(parent: window, spacing: 1)]
     grid: nwg::GridLayout,
 
-    #[nwg_control(text: "")]
-    #[nwg_layout_item(layout: grid, col: 0, row: 0, row_span: 2)]
-    show_dir: nwg::Label,
+    #[nwg_resource(title: "Wskaż plik edytora", action: nwg::FileDialogAction::Open, filters: "Edytor RPG Maker VX Ace (RPGVXAce.exe)")]
+    dialog: nwg::FileDialog,
 
-    #[nwg_control(text: "Run and inject")]
-    #[nwg_layout_item(layout: grid, col: 0, row: 2, row_span: 1)]
+    #[nwg_control(text: "Ścieżka do edytora")]
+    #[nwg_layout_item(layout: grid, col: 0, row: 0, row_span: 1, col_span: 10)]
+    editor_path_label: nwg::Label,
+
+    #[nwg_control(flags: "VISIBLE|AUTO_SCROLL", readonly: true, placeholder_text: Some("Brak ścieżki - wskaż położenie edytora"))]
+    #[nwg_layout_item(layout: grid, col: 0, row: 1, row_span: 1, col_span: 8)]
+    editor_path: nwg::TextInput,
+
+    #[nwg_control(text: "Zmień")]
+    #[nwg_layout_item(layout: grid, col: 8, row: 1, row_span: 1, col_span: 2)]
+    #[nwg_events(OnButtonClick: [App::pick_file])]
+    editor_path_button: nwg::Button,
+
+    #[nwg_control(text: "Pomiń to okno przy kolejnych uruchomieniach")]
+    #[nwg_layout_item(layout: grid, col: 0, row: 3, row_span: 1, col_span: 10)]
+    #[nwg_events(OnButtonClick: [App::set_skip_state])]
+    skip_checkbox: nwg::CheckBox,
+
+    #[nwg_control(text: "Uruchom i spatchuj edytor")]
+    #[nwg_layout_item(layout: grid, col: 0, row: 4, row_span: 2, col_span: 10)]
     #[nwg_events(OnButtonClick: [App::run_patched])]
     launch_button: nwg::Button,
 
-    #[nwg_control(realtime: true, visible: true, icon: Some(& nwg::Icon::from_system
+    #[nwg_control(visible: false, icon: Some(& nwg::Icon::from_system
     (nwg::OemIcon::Information)))]
     tray: nwg::TrayNotification,
 }
 
 impl App {
-    fn update_dir_label(&self) {
+    fn update_dir_label(&self) -> bool {
         if let Some(dir) = self.config.borrow().editor_path.clone() {
-            self.show_dir.set_text(dir.as_os_str().to_str().unwrap());
+            self.editor_path.set_text(dir.as_os_str().to_str().unwrap());
+            self.editor_path.set_modified(true);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn update_button(&self) {
+        self.launch_button.set_enabled(self.config.borrow().editor_path.is_some());
+    }
+
+    fn set_skip_state(&self) {
+        let skip = match self.skip_checkbox.check_state() {
+            CheckBoxState::Checked => true,
+            CheckBoxState::Unchecked => false,
+            CheckBoxState::Indeterminate => unreachable!()
+        };
+        self.config.borrow_mut().skip_to_launch = skip;
+    }
+
+    fn pick_file(&self) {
+        if let Ok(dir) = env::current_dir() {
+            if let Some(dir) = dir.to_str() {
+                self.dialog.set_default_folder(dir).expect("Failed to set default directory");
+            }
+        }
+
+        if self.dialog.run(Some(&self.window)) {
+            if let Ok(path) = self.dialog.get_selected_item() {
+                self.set_editor_path(PathBuf::from(path));
+            }
         }
     }
 
     fn get_drop_path(&self, data: &nwg::EventData) {
         if let Some(path_str) = data.on_file_drop().files().first() {
             let path = PathBuf::from(path_str);
-            if path.extension().unwrap_or_default() == "exe" {
+            if path.file_name().unwrap_or_default() == "RPGVXAce.exe" {
                 self.set_editor_path(path);
             }
         }
@@ -191,6 +238,7 @@ impl App {
     fn set_editor_path(&self, path: PathBuf) {
         self.config.borrow_mut().editor_path.replace(path);
         self.update_dir_label();
+        self.update_button();
         self.save_config();
     }
 
@@ -230,18 +278,11 @@ impl App {
         }
     }
 
-    fn init(&self) {
-        self.setup_config();
-        self.setup_data();
-        self.update_dir_label();
-        thread::sleep(time::Duration::from_secs(1));
-        self.splash_window.close();
-        self.window.set_visible(true);
-    }
-
     fn run_patched(&self) {
-        if let Some(path) = &self.config.borrow().editor_path {
-            run(path).unwrap();
+        let path = self.config.borrow().editor_path.clone();
+        if let Some(path) = path {
+            run(&path).expect("Failed to run editor");
+            self.save_config();
             self.notify("VX Ace Shortcuts Override", "Skróty klawiszowe nadpisane!", nwg::OemIcon::Information);
             self.exit();
         }
@@ -250,7 +291,30 @@ impl App {
     fn notify(&self, title: &str, body: &str, icon: nwg::OemIcon) {
         let tray_ico = nwg::Icon::from_system(icon);
         let flags = nwg::TrayNotificationFlags::USER_ICON | nwg::TrayNotificationFlags::LARGE_ICON;
+        self.tray.set_visibility(true); // older Windows versions won't show notification if the tray icon is hidden
         self.tray.show(body, Some(title), Some(flags), Some(&tray_ico));
+    }
+
+    fn init(&self) {
+        self.setup_config();
+        self.setup_data();
+        let config = self.config.borrow();
+        if config.skip_to_launch {
+            self.run_patched();
+        } else {
+            thread::sleep(time::Duration::from_secs(1));
+            self.splash_window.close();
+            self.update_button();
+            let has_path = self.update_dir_label();
+            self.window.set_visible(true);
+            if !has_path {
+                nwg::modal_info_message(
+                    &self.window,
+                    "axer.tech | VX Ace Shortcuts Override",
+                    "Automatyczne wykrywanie instalacji RPG Makera VX Ace nie powiodło się. Przeciągnij plik uruchamiający edytor na okno lub wskaż do niego ścieżkę ręcznie.",
+                );
+            }
+        }
     }
 
     fn exit(&self) {
