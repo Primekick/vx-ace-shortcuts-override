@@ -31,7 +31,7 @@ jobs:
         args: --release --verbose --target i686-pc-windows-msvc --target-dir ./target
     - uses: vimtor/action-zip@v1
       with:
-        files: ./target/i686-pc-windows-msvc/release/at_vxa_so.dll ./target/i686-pc-windows-msvc/release/vxa_shortcuts_override.exe LICENSE.txt
+        files: ./target/i686-pc-windows-msvc/release/vxa_shortcuts_override.exe LICENSE.txt
         dest: ${{ steps.vars.outputs.zipname }}
     - name: Extract release notes
       id: extract-release-notes
