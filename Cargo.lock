@@ -13,6 +13,7 @@ name = "at-vxa-shortcuts-override"
 version = "0.2.0"
 dependencies = [
  "anyhow",
+ "at_vxa_so",
  "current_locale",
  "directories",
  "dll-syringe",
@@ -25,6 +26,14 @@ dependencies = [
  "winapi",
  "winapi-easy",
  "winreg 0.50.0",
+]
+
+[[package]]
+name = "at_vxa_so"
+version = "0.2.0"
+dependencies = [
+ "winapi",
+ "winapi-easy",
 ]
 
 [[package]]

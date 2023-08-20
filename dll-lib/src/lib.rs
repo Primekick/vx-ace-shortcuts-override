@@ -1,7 +1,6 @@
 #![allow(improper_ctypes_definitions)]
 
-use std::ffi::CString;
-use std::{mem, ptr};
+use std::mem;
 use std::ops::BitAnd;
 use winapi::shared::minwindef::HINSTANCE;
 use winapi::um::winuser::*;
@@ -62,18 +61,6 @@ fn key_hook() {
                 send_a_with_ogonek(true);
             }
         }
-    }
-}
-
-#[no_mangle]
-pub extern fn msg_box(title: &str, content: &str) {
-    let lp_title = CString::new(title).unwrap();
-    let lp_content = CString::new(content).unwrap();
-    unsafe {
-        MessageBoxA(ptr::null_mut(),
-                    lp_content.as_ptr(),
-                    lp_title.as_ptr(),
-                    MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
     }
 }
 

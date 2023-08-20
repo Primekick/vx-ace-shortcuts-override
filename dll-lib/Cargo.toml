@@ -1,0 +1,18 @@
+[package]
+name = "at_vxa_so"
+version = "0.2.0"
+edition = "2021"
+authors = ["Axer/TheDarkAxer/Primekick <thetrueaxer@gmail.com>"]
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+name = "at_vxa_so"
+path = "src/lib.rs"
+
+[dependencies]
+winapi-easy = "0.1.0"
+winapi = { version = "0.3.9", features = ["winuser"] }
+
+[profile.release]
+opt-level = "s"
