@@ -9,15 +9,17 @@ VX Ace Shortcuts Override, just like the name suggests, provides a way to bypass
 This tool works by injecting a DLL file into currently running VXA editor instance. For this reason antivirus software will most probably prevent running it or even straight up remove it right after downloading, so to make it work you have to add the tool to the exceptions list.
 
 ## How do I use it?
-https://github.com/Primekick/vx-ace-shortcuts-override/assets/48254804/c2473eb7-4ab9-4942-9e30-2aab982fff3b
+![How do I use it](https://files.catbox.moe/3q79fi.webp)
 
-- put both the at_vxa_so.dll and the exectuable in the same directory where the VX Ace editor resides
-- launch the editor first
-- run the vxa_shortcuts_override.exe
-- if done correctly a popupwindow should appear to indicate the DLL was injected successfully 
+- extract the zip at a desired location
+- run vxa_shortcuts_override.exe
+- editor's location should be automatically detected - if not, provide it manually
+- a system notification will appear to indicate successful injection
 
 ## Features & roadmap
-- [x] inject a DLL overriding nonsensical built-in shortcuts
+- [x] inject a DLL overriding nonsensical built-in shortcuts\
+- [x] editor location detection
+- [x] autolaunch with injection
 - [ ] support for languages other than polish
 - [ ] switch to a less invasive hotkey hooking if possible (i.e. not global)
 - [ ] permanently patch the editor instead of having to run the fix manually with every lanuch

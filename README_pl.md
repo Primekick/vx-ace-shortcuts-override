@@ -9,15 +9,17 @@ VX Ace Shortcuts Override, jak nazwa sugeruje, zapewnia sposób na ominięcie dz
 Narzędzie to działa poprzez wstrzyknięcie pliku DLL do aktualnie uruchomionej instancji edytora VXA. Z tego powodu antywirusy najprawdopodobniej uniemożliwią jego uruchomienie lub wprost usuną od razu po pobraniu, zatem w celu zapewnienia poprawnego działania, należy dodać je do listy wyjątków.
 
 ## Jak tego użyć?
-https://github.com/Primekick/vx-ace-shortcuts-override/assets/48254804/c2473eb7-4ab9-4942-9e30-2aab982fff3b
+![How do I use it](https://files.catbox.moe/3q79fi.webp)
 
-- umieść zarówno at_vxa_so.dll, jak i plik exe w tym samym katalogu, w którym znajduje się edytor VX Ace
-- najpierw włącz edytor
-- następnie uruchom vxa_shortcuts_override.exe
-- jeśli wszystko poszło dobrze, powinno pojawić się okienko wskazujące, że DLLka została pomyślnie wstrzyknięta
+- rozpakowuj plik zip z programem w dowolnym miejscu
+- uruchom vxa_shortcuts_override.exe
+- lokalizacja edytora powinna zostać wykryta automatycznie — jeżeli jednak nie, musisz podać ją ręcznie
+- powinno pojawić się powiadomienie systemowe informujące o pomyślnym wstrzyknięciu
 
 ## Ficzery i plany na przyszłość
 - [x] wstrzykiwanie DLLki nadpisującej wbudowane skróty klawiszowe
+- [x] wykrywanie lokalizacji edytora
+- [x] automatyczne włączanie edytora ze wstrzykiwaniem
 - [ ] wsparcie dla innych języków poza polskim
 - [ ] przejście na mniej inwazyjny sposób tworzenia skrótów (tj. nieglobalny)
 - [ ] patchowanie edytora na stałe zamiast uruchamiania programu za każdym razem po włączeniu edytora
