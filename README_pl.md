@@ -9,9 +9,9 @@ VX Ace Shortcuts Override, jak nazwa sugeruje, zapewnia sposób na ominięcie dz
 Narzędzie to działa poprzez wstrzyknięcie pliku DLL do aktualnie uruchomionej instancji edytora VXA. Z tego powodu antywirusy najprawdopodobniej uniemożliwią jego uruchomienie lub wprost usuną od razu po pobraniu, zatem w celu zapewnienia poprawnego działania, należy dodać je do listy wyjątków.
 
 ## Jak tego użyć?
-![How do I use it](https://files.catbox.moe/3q79fi.webp)
+https://github.com/Primekick/vx-ace-shortcuts-override/assets/48254804/bf264bf7-34db-459a-b2c1-8291694e5da7
 
-- rozpakowuj plik zip z programem w dowolnym miejscu
+- rozpakuj plik zip z programem w dowolnym miejscu
 - uruchom vxa_shortcuts_override.exe
 - lokalizacja edytora powinna zostać wykryta automatycznie — jeżeli jednak nie, musisz podać ją ręcznie
 - powinno pojawić się powiadomienie systemowe informujące o pomyślnym wstrzyknięciu

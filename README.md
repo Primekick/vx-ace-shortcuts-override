@@ -9,7 +9,7 @@ VX Ace Shortcuts Override, just like the name suggests, provides a way to bypass
 This tool works by injecting a DLL file into currently running VXA editor instance. For this reason antivirus software will most probably prevent running it or even straight up remove it right after downloading, so to make it work you have to add the tool to the exceptions list.
 
 ## How do I use it?
-![How do I use it](https://files.catbox.moe/3q79fi.webp)
+https://github.com/Primekick/vx-ace-shortcuts-override/assets/48254804/bf264bf7-34db-459a-b2c1-8291694e5da7
 
 - extract the zip at a desired location
 - run vxa_shortcuts_override.exe
