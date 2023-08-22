@@ -50,12 +50,8 @@ fn key_hook() {
     for action in hotkeys.listen_for_hotkeys().unwrap() {
         match action.unwrap() {
             Action::SmallOgonek => {
-                let is_caps_on = unsafe { GetKeyState(VK_CAPITAL).bitand(0x0001) };
-                if is_caps_on > 0 {
-                    send_a_with_ogonek(true);
-                } else {
-                    send_a_with_ogonek(false);
-                }
+                let is_caps_on = unsafe { GetKeyState(VK_CAPITAL).bitand(0x0001) } > 0 ;
+                send_a_with_ogonek(is_caps_on);
             }
             Action::BigOgonek => {
                 send_a_with_ogonek(true);
